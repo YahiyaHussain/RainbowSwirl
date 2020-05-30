@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>brownian motion</title>
+		<style>
+			body { margin: 0; }
+			canvas { display: block; }
+		</style>
+	</head>
+	<body>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/101/three.min.js"></script>
+		<script>
+            
+            function vertexShader() {
+                return `
+                    varying vec3 vUv; 
+
+                    void main() {
+                    vUv = position; 
+
+                    vec4 modelViewPosition = modelViewMatrix * vec4(position, 1.0);
+                    gl_Position = projectionMatrix * modelViewPosition; 
+                    }
+                `
+                }
+            function fragmentShader() {
+                return `
+                        uniform vec3 colorA; 
+                        uniform vec3 colorB; 
+                        varying vec3 vUv;
+
+                        void main() {
+                            gl_FragColor = vec4(mix(colorA, colorB, vUv.y), 1.0);
+                        }
+                `
+            }
+            window.addEventListener('load', init)
+            let scene
+            let camera
+            let renderer
+            let sceneObjects = []
+
+            function init() {
+            scene = new THREE.Scene()
+
+            // camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+            camera = new THREE.OrthographicCamera (-5, 5, 5, -5, 0.1, 1000)
+            camera.position.z = 5
+
+            renderer = new THREE.WebGLRenderer()
+            renderer.setSize(window.innerWidth, window.innerHeight)
+
+            document.body.appendChild(renderer.domElement)
+            document.body.addEventListener( 'keydown', onKeyDown, false );
+            adjustLighting()
+            // addBasicCube()
+            addExperimentalCube();
+            // addLine();
+            animationLoop()
+            // setInterval(updateLine, .1)
+            }
+
+            function adjustLighting() {
+                let pointLight = new THREE.PointLight(0xdddddd)
+                pointLight.position.set(-5, -3, 3)
+                scene.add(pointLight)
+
+                let ambientLight = new THREE.AmbientLight(0x505050)
+                scene.add(ambientLight)
+            }
+
+            
+
+            function addExperimentalCube() {
+                let uniforms = {        
+                    colorB: {type: "vec3", value: new THREE.Color(0xACB6E5)},
+                    colorA: {type: "vec3", value: new THREE.Color(0x74ebd5)}
+                }
+
+                let geometry = new THREE.BoxGeometry(1, 1, 1)
+                let material =  new THREE.ShaderMaterial({
+                    uniforms: uniforms,
+                    fragmentShader: fragmentShader(),
+                    vertexShader: vertexShader(),
+                })
+
+                let mesh = new THREE.Mesh(geometry, material)
+                mesh.position.x = 2
+                scene.add(mesh)
+                sceneObjects.push(mesh)
+            }
+
+            // Standard Normal variate using Box-Muller transform.
+            function randn_bm() {
+                var u = 0, v = 0;
+                while(u === 0) u = Math.random(); //Converting [0,1) to (0,1)
+                while(v === 0) v = Math.random();
+                return Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+            }
+
+            function onKeyDown(){
+
+                let object = sceneObjects[0]
+                // for(let object of sceneObjects) {
+                // transform the variance to be right for the drunken walk
+                camera.position.x = object.position.x;
+                camera.position.y = object.position.y;
+                // camera.position =  object.position ;
+
+            }
+
+            
+
+        
+
+            function animationLoop() {
+                renderer.render(scene, camera)
+                let delta = 0.25
+                let dt = 0.1
+                let object = sceneObjects[0]
+
+                // object.rotation.x += 0.01
+                // object.rotation.y += 0.03
+                object.position.x += randn_bm()*delta*Math.sqrt(dt)
+                object.position.y += randn_bm()*delta*Math.sqrt(dt)
+                
+                requestAnimationFrame(animationLoop)
+            }
+
+		</script>
+	</body>
+</html>
